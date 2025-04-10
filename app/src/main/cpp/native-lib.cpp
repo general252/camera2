@@ -8,6 +8,7 @@ Java_com_sample_cameraopenglnative_MainActivity_stringFromJNI(
     std::string hello = "Hello from C++";
     return env->NewStringUTF(hello.c_str());
 }
+
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_sample_cameraopenglnative_MainActivity_onPacket(JNIEnv *env, jobject thiz, jobject data, jint size) {
@@ -17,6 +18,7 @@ Java_com_sample_cameraopenglnative_MainActivity_onPacket(JNIEnv *env, jobject th
 
     printf("%p %d %lld", nativeData, size, capacity);
 }
+
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_sample_cameraopenglnative_MainActivity_onYUV(JNIEnv *env, jobject thiz, jobject y,
@@ -26,4 +28,9 @@ Java_com_sample_cameraopenglnative_MainActivity_onYUV(JNIEnv *env, jobject thiz,
     jlong capacity = env->GetDirectBufferCapacity(y);
 
     printf("%p %d %lld", nativeData, y_size, capacity);
+}
+
+int cc (){
+#if NCNN_V
+#endif
 }
