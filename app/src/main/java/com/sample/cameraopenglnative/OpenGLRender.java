@@ -443,8 +443,15 @@ public class OpenGLRender {
         updateTimestampTexture();
         // drawTexturedQuad(textTextureId)：调用该方法将时间戳纹理叠加到 FBO 中的图像上。
         drawTexturedQuad(timestampTextureId, videoWidth, videoHeight);
+
         // GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0)：解绑 FBO，恢复默认的帧缓冲。
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+        if (encoderIndex == 1) {
+            frameCount++;
+            if (frameCount % 30 == 0) {
+                Native.onFrame(fboId, videoWidth, videoHeight);
+            }
+        }
 
 
         // ② 输出到预览 EGLSurface（改为根据实际预览 Surface 尺寸设置 viewport）
@@ -491,6 +498,7 @@ public class OpenGLRender {
             EGL14.eglSwapBuffers(eglDisplay, encoderEGLSurface);
         }
     }
+    int frameCount = 0;
 
     void adjustViewport(int surfaceWidth, int surfaceHeight, int videoWidth, int videoHeight) {
         float surfaceAspectRatio = (float) surfaceWidth / surfaceHeight;

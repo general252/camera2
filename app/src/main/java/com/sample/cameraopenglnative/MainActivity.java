@@ -6,6 +6,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.content.pm.PackageManager;
+import android.content.res.AssetManager;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraManager;
@@ -20,14 +21,11 @@ import android.widget.TextView;
 
 import com.sample.cameraopenglnative.databinding.ActivityMainBinding;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class MainActivity extends AppCompatActivity {
 
-    // Used to load the 'cameraopenglnative' library on application startup.
-    static {
-        System.loadLibrary("cameraopenglnative");
-    }
 
     private ActivityMainBinding binding;
 
@@ -40,8 +38,8 @@ public class MainActivity extends AppCompatActivity {
 
         // Example of a call to a native method
         TextView tv = binding.sampleText;
-        tv.setText(stringFromJNI());
-
+        tv.setText(Native.stringFromJNI());
+        Native.setAssetManager(getAssets());
 
         previewTextureView = new TextureView(this);
         previewTextureView.setSurfaceTextureListener(textureViewListener);
@@ -51,16 +49,6 @@ public class MainActivity extends AppCompatActivity {
             // starWorker();
         }
     }
-
-    /**
-     * A native method that is implemented by the 'cameraopenglnative' native library,
-     * which is packaged with this application.
-     */
-    public native String stringFromJNI();
-
-    public native void onPacket(ByteBuffer data, int size);
-
-    public native void onYUV(ByteBuffer y, int ySize, ByteBuffer u, int uSize, ByteBuffer v, int vSize);
 
     @Override
     protected void onDestroy() {
@@ -83,6 +71,7 @@ public class MainActivity extends AppCompatActivity {
     // 存储权限
     int REQUEST_CODE_STORAGE_PERMISSION = 1000;
     int REQUEST_CODE_CAMERA_PERMISSION = 1001;
+    int REQUEST_CODE_STORAGE_READ_PERMISSION = 1002;
 
     void starWorker() {
         checkPermission();
@@ -128,7 +117,7 @@ public class MainActivity extends AppCompatActivity {
             ByteBuffer buffer = mediaCodec.getOutputBuffer(index);
             if (buffer != null) {
                 int s = buffer.remaining();
-                onPacket(buffer, s);
+                Native.onPacket(buffer, s);
 
                 Log.d(TAG, String.format("onOutputBufferAvailable: %d", s));
             }
@@ -183,12 +172,21 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG, "存储权限已授予");
         }
 
+
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             // 权限未授予，请求权限
             ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.CAMERA, android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_CODE_CAMERA_PERMISSION);
         } else {
             // 权限已授予，执行需要存储权限的操作
             Log.d(TAG, "摄像头权限已授予");
+        }
+
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            // 权限未授予，请求权限
+            ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE, android.Manifest.permission.CAMERA}, REQUEST_CODE_STORAGE_READ_PERMISSION);
+        } else {
+            // 权限已授予，执行需要存储权限的操作
+            Log.d(TAG, "存储读取权限已授予");
         }
     }
 
