@@ -82,7 +82,7 @@ public class Main {
         encoder1.setCallback(_mediaCallback);
         encoder1.Open();
 
-        encoder2 = new Encoder(864, 1056, backgroundHandler); // 仅使用编码时, 请颠倒长宽
+        encoder2 = new Encoder(640, 640, backgroundHandler); // 仅使用编码时, 请颠倒长宽
         encoder2.setCallback(_mediaCallback2);
         encoder2.Open();
 

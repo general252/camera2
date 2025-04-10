@@ -160,10 +160,10 @@ YoloV11::YoloV11() {
 }
 
 
-void YoloV11::Load(AAssetManager* mgr, const char* param,  const char* model) {
+bool YoloV11::Load(AAssetManager* mgr, const char* param,  const char* model) {
 
 #if NCNN_VULKAN
-    yolo.opt.use_vulkan_compute = true;
+    yolo.opt.use_vulkan_compute = false;
 #endif
     // /storage/emulated/0/Download/CameraOpenglH264/
     __android_log_print(ANDROID_LOG_DEBUG, "ncnn", "load model param");
@@ -172,17 +172,18 @@ void YoloV11::Load(AAssetManager* mgr, const char* param,  const char* model) {
     rc = yolo.load_param(mgr, param);
     if (rc != 0) {
         __android_log_print(ANDROID_LOG_WARN, "ncnn", "load model param fail %d", rc);
-        return;
+        return false;
     }
 
     __android_log_print(ANDROID_LOG_DEBUG, "ncnn", "load model ...");
     rc = yolo.load_model(mgr, model);
     if (rc != 0) {
         __android_log_print(ANDROID_LOG_DEBUG, "ncnn", "load model fail %d", rc);
-        return;
+        return false;
     }
 
     __android_log_print(ANDROID_LOG_DEBUG, "ncnn", "load model end");
+    return true;
 }
 
 int YoloV11::Detect(const cv::Mat &bgr, std::vector<Object> &objects) {

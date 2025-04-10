@@ -446,13 +446,12 @@ public class OpenGLRender {
 
         // GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0)：解绑 FBO，恢复默认的帧缓冲。
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
-        if (encoderIndex == 1) {
+        if (encoderIndex == 2) {
             frameCount++;
             if (frameCount % 30 == 0) {
                 Native.onFrame(fboId, videoWidth, videoHeight);
             }
         }
-
 
         // ② 输出到预览 EGLSurface（改为根据实际预览 Surface 尺寸设置 viewport）
         if (encoderIndex == 1 && previewEGLSurface != null) {

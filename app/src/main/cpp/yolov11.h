@@ -38,7 +38,7 @@ private:
 
 public:
     YoloV11();
-    void Load(AAssetManager* mgr, const char* param,  const char* model);
+    bool Load(AAssetManager* mgr, const char* param,  const char* model);
     int Detect(const cv::Mat& bgr, std::vector<Object>& objects);
     int DetectNCNN(const ncnn::Mat& in, std::vector<Object>& objects);
 };

@@ -42,8 +42,10 @@ Java_com_sample_cameraopenglnative_Native_onYUV(JNIEnv *env, jobject thiz, jobje
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
 
-static YoloV11 yolo;
 AAssetManager *nativeAssetManager = nullptr;
+std::mutex mtx;
+std::string buffer;
+bool haveData = false;
 
 extern "C"
 JNIEXPORT void JNICALL
@@ -54,17 +56,60 @@ Java_com_sample_cameraopenglnative_Native_onFrame(JNIEnv *env, jclass clazz, jin
     int height = h;
 
     static bool first = true;
-    static std::string buffer;
+
     if (first) {
         first = false;
 
         int size = width * height * 4;
         buffer.resize(size);
 
-        // yolo.Load(nativeAssetManager,"model.ncnn.param", "model.ncnn.bin" ); // yolov11-opt
-        yolo.Load(nativeAssetManager,"yolov11-opt.param", "yolov11-opt.bin" );
+        new std::thread([=](){
+
+            YoloV11 yolo;
+            bool ok = yolo.Load(nativeAssetManager,"model.ncnn.param", "model.ncnn.bin" );
+            if (!ok){
+                return;
+            }
+
+            while (true) {
+                mtx.lock();
+                if (haveData) {
+                    char* ptr = buffer.data();
+                    // 将内存数据加载到 OpenCV 的 Mat 对象中
+                    cv::Mat imageRGBA(height, width, CV_8UC4, ptr);
+
+                    // 如果需要，可以将 RGBA 转换为 BGR 格式（OpenCV 默认使用 BGR）
+                    cv::Mat bgr;
+                    cv::cvtColor(imageRGBA, bgr, cv::COLOR_RGBA2BGR);
+
+                    std::vector<Object> objects;
+                    yolo.Detect(bgr, objects);
+
+                    __android_log_print(ANDROID_LOG_DEBUG, "ncnn", "识别到 %d 个对象", objects.size());
+                    for (int i = 0; i < objects.size(); ++i) {
+                        auto obj = objects[i];
+                        std::string name = getLabelName(obj.label);
+
+                        __android_log_print(ANDROID_LOG_DEBUG, "ncnn",
+                                            "[%d] %d %s %5.2f (%5.2f, %5.2f) (%5.2f, %5.2f)",
+                                            i + 1, obj.label, name.data(), obj.prob,
+                                            obj.rect.x, obj.rect.y, obj.rect.width, obj.rect.height);
+                    }
+                }
+
+                haveData = false;
+                mtx.unlock();
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            }
+        });
     }
 
+    if (haveData) {
+        return;
+    }
+
+    std::lock_guard<std::mutex> lock(mtx);
     // writeToFile("/storage/emulated/0/Download/CameraOpenglH264/output.raw", (char*)buffer, size);
     // 1
     // auto bgr = cv::imread("/storage/emulated/0/Download/CameraOpenglH264/bus.jpg", 1);
@@ -75,27 +120,7 @@ Java_com_sample_cameraopenglnative_Native_onFrame(JNIEnv *env, jclass clazz, jin
     glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, ptr);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    // 将内存数据加载到 OpenCV 的 Mat 对象中
-    cv::Mat imageRGBA(height, width, CV_8UC4, ptr);
-
-    // 如果需要，可以将 RGBA 转换为 BGR 格式（OpenCV 默认使用 BGR）
-    cv::Mat bgr;
-    cv::cvtColor(imageRGBA, bgr, cv::COLOR_RGBA2BGR);
-
-    std::vector<Object> objects;
-    yolo.Detect(bgr, objects);
-
-    __android_log_print(ANDROID_LOG_DEBUG, "ncnn", "识别到 %d 个对象", objects.size());
-    for (int i = 0; i < objects.size(); ++i) {
-        auto obj = objects[i];
-        std::string name = getLabelName(obj.label);
-
-        __android_log_print(ANDROID_LOG_DEBUG, "ncnn", "[%d] %d %s %5.2f (%5.2f, %5.2f) (%5.2f, %5.2f)",
-                            i+1, obj.label, name.data(), obj.prob,
-                            obj.rect.x, obj.rect.y, obj.rect.width, obj.rect.height);
-    }
-
-
+    haveData = true;
 }
 
 
